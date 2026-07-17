@@ -1,0 +1,1 @@
+You need both folders for the html to render correctly
