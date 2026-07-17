@@ -35,32 +35,15 @@ function toggleflags() {
         elem.removeClass('showing-all');
         elem.addClass('hiding-all');
         jQuery(elem).html('Show all flags');
-        jQuery('.tags, .context, .checkflag, .setflag, .rolls, .approval, .ruletag').hide();
+        jQuery('.tags, .checkflag, .setflag, .rolls, .approval, .ruletag').hide();
     } else {
         var elem = jQuery('.showall');
         elem.removeClass('hiding-all');
         elem.addClass('showing-all');
         jQuery(elem).html('Hide all flags');
-        jQuery('.tags, .context, .checkflag, .setflag, .rolls, .approval, .ruletag').show();
+        jQuery('.tags, .checkflag, .setflag, .rolls, .approval, .ruletag').show();
     }
 }
-
-function togglecontext() {
-    if (jQuery('.showcontext').hasClass('showing-context')) {
-        var elem = jQuery('.showcontext');
-        elem.removeClass('showing-context');
-        elem.addClass('hiding-context');
-        jQuery(elem).html('Show context');
-        jQuery('.context').hide();
-    } else {
-        var elem = jQuery('.showcontext');
-        elem.removeClass('hiding-context');
-        elem.addClass('showing-context');
-        jQuery(elem).html('Hide context');
-        jQuery('.context').show();
-    }
-}
-
 
 function toggletags() {
     if (jQuery('.showtags').hasClass('showing-tags')) {
