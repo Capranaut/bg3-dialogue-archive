@@ -1,0 +1,714 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>UND_DrowResupply_PAD</title>
+        <style>
+            body {
+                background-color: lightgrey;
+                font-family: monospace;
+                font-size: medium;
+            }
+            .title {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: xx-large;
+                display: block;
+                padding: 10px 0px 10px 10px;
+            }
+            .synopsis {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: medium;
+                display: block;
+                padding: 10px 0px 10px 10px;
+            }
+            .greeting {
+                background-color: white;
+            }
+            .question {
+                background-color: lightgreen;
+            }
+            .answer {
+                background-color: azure;
+            }
+            .cinematic {
+                background-color: lightpink;
+            }
+            .visualstate {
+                background-color: plum;
+            }
+            .nested {
+                background-color: salmon;
+            }
+            .jump {
+                background-color: khaki;
+            }
+            .alias {
+                background-color: peachpuff;
+            }
+            .activeroll {
+                background-color: lavender;
+            }
+            .passiveroll {
+                background-color: lightcyan;
+            }
+            .rollresult {
+                background-color: lightblue;
+            }
+            .empty {
+                background-color: cornsilk;
+            }
+            .trade {
+                background-color: lightyellow;
+            }
+            .pop {
+                background-color: white;
+            }
+            .other {
+                background-color: white;
+            }
+            .link {
+                background-color: whitesmoke;
+            }
+            .visible {
+                display: inline;
+            }
+            .invisible {
+                display: none;
+            }
+            .visible-flags {
+                display: block;
+                margin: 5px 0px 5px 5px;
+            }
+            .invisible-flags {
+                display: none;
+            }
+            .visible-nodecontext {
+                display: block;
+                margin: 5px 0px 5px 5px;
+            }
+            .invisible-nodecontext {
+                display: none;
+            }
+            .visible-node {
+                display: block;
+            }
+            .invisible-node {
+                display: none;
+            }
+            .expand-nodecontext {
+                cursor: pointer;
+            }
+            .collapse-nodecontext {
+                cursor: pointer;
+            }
+            .expand-flags {
+                cursor: pointer;
+            }
+            .collapse-flags {
+                cursor: pointer;
+            }
+            .expand-children {
+                cursor: pointer;
+            }
+            .collapse-children {
+                cursor: pointer;
+            }
+            .info {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .speaker {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .reactions {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .voiceline {
+                font-style: normal;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: medium;
+                font-weight: normal;
+                cursor: pointer;
+            }
+            .node {
+                width: auto;
+                height: 100%;
+                padding: 8px 0px 8px 8px;
+                margin: 8px 0px 8px 8px;
+                border: thin dotted;
+            }
+            .clipboard {
+                cursor: pointer;
+            }
+            .control {
+                cursor: pointer;
+                text-decoration: underline dotted;
+                text-decoration-color: blue;
+            }
+            .right {
+                float: right;
+            }
+            .actions {
+                margin: 16px 0px 16px 16px;
+            }
+            .notext {
+                font-size: 0;
+            }
+            .flag {
+                font-size: medium;
+            }
+            .flags {
+            }
+            .checkflags {
+            }
+            .setflags {
+            }
+            .flaggroup {
+            }
+        </style>
+        <script type="text/javascript">
+    
+document.addEventListener("click", (event) => {
+    const elt = document.elementFromPoint(event.clientX, event.clientY);
+    if (elt.tagName == 'DIV' && elt.id) {
+        elt.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    }
+});
+window.addEventListener("load", (event) => {
+    console.log('document loaded: ' + document.location);
+    if (document.location.hash) {
+        const node_uuid = document.location.hash.slice(1);
+        const elt = document.getElementById(node_uuid);
+        if (elt) {
+            expand_node(node_uuid);
+        }
+    }
+});
+function get_expand_flags_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-flags')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_flags_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-flags')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_flags_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('flags')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_flags(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_flags_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_flags_elt(div_elt).classList.replace('invisible', 'visible')
+    get_flags_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-flags', 'visible-flags')
+    });
+}
+function on_click_collapse_flags(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_flags_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_flags_elt(div_elt).classList.replace('visible', 'invisible')
+    get_flags_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-flags', 'invisible-flags')
+    });
+}
+
+function get_expand_nodecontext_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-nodecontext')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_nodecontext_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-nodecontext')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_nodecontext_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('nodecontext')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_nodecontext(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_nodecontext_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_nodecontext_elt(div_elt).classList.replace('invisible', 'visible')
+    get_nodecontext_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+    });
+}
+function on_click_collapse_nodecontext(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_nodecontext_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_nodecontext_elt(div_elt).classList.replace('visible', 'invisible')
+    get_nodecontext_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+    });
+}
+
+function get_expand_children_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-children')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_children_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-children')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_children_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('node')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_children(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_children_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_children_elt(div_elt).classList.replace('invisible', 'visible')
+    get_children_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-node', 'visible-node')
+    });
+}
+function on_click_collapse_children(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_children_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_children_elt(div_elt).classList.replace('visible', 'invisible')
+    get_children_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-node', 'invisible-node')
+    });
+}
+function expand_one_node(node_elt) {
+    var e = get_expand_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_collapse_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_flags_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-flags', 'visible-flags')
+        });
+    }
+
+    e = get_expand_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_collapse_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_nodecontext_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+        });
+    }
+
+    e = get_expand_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible')
+    }
+    e = get_collapse_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible')
+    }
+    e = get_children_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-node', 'visible-node')
+        });
+    }
+}
+function expand_node(uuid) {
+    const target_uuid = uuid;
+    const target_elt = document.getElementById(uuid);
+    if (target_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return false;
+    }
+    var node_uuid = target_elt.getAttribute('name');
+    console.log("node_uuid = " + node_uuid);
+    while (node_uuid != 'toplevelnode') {
+        const node_elt = document.getElementById(node_uuid);
+        if (node_elt == null) {
+            console.log("Node cannot be found: " + node_uuid);
+            break;
+        }
+        expand_one_node(node_elt);
+        node_uuid = node_elt.getAttribute('name');
+    }
+    target_elt.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    return false;
+}
+function expand_all() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        expand_one_node(nodes.item(i));
+    }
+}
+function collapse_one_node(node_elt) {
+    var e = get_expand_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_collapse_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_flags_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-flags', 'invisible-flags')
+        });
+    }
+
+    e = get_expand_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_collapse_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_nodecontext_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+        });
+    }
+
+    e = get_expand_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible')
+    }
+    e = get_collapse_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible')
+    }
+    e = get_children_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-node', 'invisible-node')
+        });
+    }
+}
+function collapse_all() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        collapse_one_node(nodes.item(i));
+    }
+}
+
+function expand_all_flags() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_collapse_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_flags_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('invisible-flags', 'visible-flags')
+            });
+        }
+    }
+}
+
+function collapse_all_flags() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_collapse_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_flags_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('visible-flags', 'invisible-flags')
+            });
+        }
+    }
+}
+
+function expand_all_nodecontexts() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_collapse_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_nodecontext_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+            });
+        }
+    }
+}
+
+function collapse_all_nodecontexts() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_collapse_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_nodecontext_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+            });
+        }
+    }
+}
+
+        </script>
+    </head>
+    <body>
+        <div class="title">UND_DrowResupply_PAD</div>
+            <div class="synopsis"><label>Speaker 0: Player</label></div>
+        <div><label>Dialog UUID:&nbsp;</label><label class="clipboard" onclick="navigator.clipboard.writeText('d0988990-6a74-7f2c-5566-8a2c7964f2b4')">d0988990-6a74-7f2c-5566-8a2c7964f2b4</label></div>
+        <div><label>Timeline UUID:&nbsp;</label><label class="clipboard" >cd5b5a1a-2e5a-1e73-aa49-2e1af192f26c</label></div>
+        <div><label>LSJ path: Gustav.pak:Mods/Gustav/Story/Dialogs/Act1/Underdark/VBs/UND_DrowResupply_PAD.lsj</label></div>
+        <div><label>LSF path: not found</label></div>
+        <div><label>Dialog bank path: Gustav.pak:Public/Gustav/Content/Assets/Dialogs/Act1/Underdark/[PAK]_VBs/_merged.lsf</label></div>
+        <div class="actions">
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all()">Click here to EXPAND ALL</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all()">Click here to COLLAPSE ALL</label></span>            
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all_flags()">Click here to EXPAND ALL FLAGS</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all_flags()">Click here to COLLAPSE ALL FLAGS</label></span>            
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all_nodecontexts()">Click here to EXPAND ALL NODE CONTEXTS</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all_nodecontexts()">Click here to COLLAPSE ALL NODE CONTEXTS</label></span>            
+            <span><label>   |   </label></span>
+        </div>
+            <div id="2a35b3b2-f683-3521-b5fb-50667f16b074" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode | EndNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('2a35b3b2-f683-3521-b5fb-50667f16b074')"><i>2a35b3b2-f683-3521-b5fb-50667f16b074</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Player [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('c71eb8de-74e3-4d70-9826-22da7e2dc607')">[REALLY_LOLTHDROWELF]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('VG9vIG11Y2ggZHVzdCB0byBiZSBhIG5ldyBvdXRwb3N0LiBJIHdvbmRlciB3aHkgbXkgYnJldGhyZW4gYWJhbmRvbmVkIHRoaXMgcGxhY2Uu'))">Too much dust to be a new outpost. I wonder why my brethren abandoned this place.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h7b7b2dedg63fdg4db4g95aegc6d95069a899')"><i>h7b7b2dedg63fdg4db4g95aegc6d95069a899</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('d2d60a81-688e-4d3d-ba56-3e467cae37fc')">[REALLY_SELDARINEDROWELF]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('TG9sdGgncyBzaWdpbHMgb24gZXZlcnkgYm94LiBJZiB0aGlzIHBsYWNlIHdhc24ndCBhbHJlYWR5IGFiYW5kb25lZCwgSSdkIHNldCBpdCBhYmxhemUu'))">Lolth's sigils on every box. If this place wasn't already abandoned, I'd set it ablaze.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h5ed63f01gb24eg49e2gaf7egbf672a4d33c3')"><i>h5ed63f01gb24eg49e2gaf7egbf672a4d33c3</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div id="57a8a0f0-0618-4a3a-95b6-4e110a738d45" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode | EndNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('57a8a0f0-0618-4a3a-95b6-4e110a738d45')"><i>57a8a0f0-0618-4a3a-95b6-4e110a738d45</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Player [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ffd08582-7396-4cac-bcd4-8f9cd0fd8ef3')">[REALLY_ASTARION]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('QSByZXN1cHBseSBzdGFzaC4gSSB3b25kZXIgaWYgTG9sdGgncyBwZXRzIGxlZnQgYW55dGhpbmcgZ29vZC4='))">A resupply stash. I wonder if Lolth's pets left anything good.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h0e341185gedc5g4306g88d2gc5462876bd4c')"><i>h0e341185gedc5g4306g88d2gc5462876bd4c</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('9b0354c0-56d9-4723-8034-918ac9abab19')">[REALLY_GALE]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('TG9sdGgtc3dvcm4gZHJvdyBwYXNzZWQgYnkgaGVyZSwgYnV0IGl0IHNlZW1zIHRoZXkgbmV2ZXIgcmV0dXJuZWQuIEZpbmRlcnMsIGtlZXBlcnMsIEkgc2F5Lg=='))">Lolth-sworn drow passed by here, but it seems they never returned. Finders, keepers, I say.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h4823d6c1g9635g400agb4aage55013701fc8')"><i>h4823d6c1g9635g400agb4aage55013701fc8</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('4ce6ddd6-0d46-436f-91ce-86dfe7e58156')">[REALLY_HELIA]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fCBUaGUgZHJvdyBtdXN0IGhhdmUgcmVzdXBwbGllZCBoZXJlIC0gTG9sdGgtc3dvcm4gdG9vLiB8'))">| The drow must have resupplied here - Lolth-sworn too. |</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hba6e459cg534ag4bd6gb517g4d4b6dae54ba')"><i>hba6e459cg534ag4bd6gb517g4d4b6dae54ba</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('1a2f70d6-8ead-4eb5-a824-79ee1971764a')">[REALLY_KARLACH]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fCBUaGUgZHJvdyBtdXN0IGhhdmUgcmVzdXBwbGllZCBoZXJlIC0gTG9sdGgtc3dvcm4gdG9vLiB8'))">| The drow must have resupplied here - Lolth-sworn too. |</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hd427ee97g3b0fg4d46g8cafg6fbb640d2002')"><i>hd427ee97g3b0fg4d46g8cafg6fbb640d2002</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('b5682d1d-c395-489c-9675-1f9b0c328ea5')">[REALLY_LAEZEL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('QW4gb2xkIHJlc3VwcGx5IGNhY2hlLiBMb2x0aCdzIGNoaWxkcmVuIG9uY2UgdHJlYWQgaGVyZS4='))">An old resupply cache. Lolth's children once tread here.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ha10a4a15gfa29g42a2g808cg7911f0b7f7fb')"><i>ha10a4a15gfa29g42a2g808cg7911f0b7f7fb</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('2cff7db0-ae50-4267-82ea-84e961d3e3fa')">[REALLY_MINSC]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fCBUaGUgZHJvdyBtdXN0IGhhdmUgcmVzdXBwbGllZCBoZXJlIC0gTG9sdGgtc3dvcm4gdG9vLiB8'))">| The drow must have resupplied here - Lolth-sworn too. |</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h40766929g65f9g4ed8g9baag606fdc8405c4')"><i>h40766929g65f9g4ed8g9baag606fdc8405c4</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('642d2aee-e3df-47e3-9f47-bbcd441bb9e0')">[REALLY_SHADOWHEART]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('QW4gb2xkIHJlc3VwcGx5IGNhY2hlLiBMb2x0aC1zd29ybiBkcm93Li4uIGhhc24ndCBiZWVuIHRvdWNoZWQgaW4geWVhcnMu'))">An old resupply cache. Lolth-sworn drow... hasn't been touched in years.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hfd194378g35a6g4ebag9674gc1fcf2ac3e66')"><i>hfd194378g35a6g4ebag9674gc1fcf2ac3e66</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('5f40def5-d3ec-4698-a367-01a339888956')">[REALLY_WYLL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('TXVzdCd2ZSBiZWVuIGEgZHJvdyBzdXBwbHkgY2FjaGUuIE5vdGhpbmcgbGVmdCBidXQgc29tZSBlbXB0eSBib3hlcy4='))">Must've been a drow supply cache. Nothing left but some empty boxes.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h5e1f0e58g7395g4f2fga14fg3c93d8c9e496')"><i>h5e1f0e58g7395g4f2fga14fg3c93d8c9e496</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('QnVuY2ggb2YgZW1wdHkgYm94ZXMgYW5kIHNwaWRlcndlYnMuIEd1ZXNzIExvbHRoJ3MgY3VsdGlzdHMgaGF2ZW4ndCBiZWVuIGJhY2sgaGVyZSBpbiBhIHdoaWxlLg=='))">Bunch of empty boxes and spiderwebs. Guess Lolth's cultists haven't been back here in a while.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h33b026fagbc39g4306gbc36gd183e422264d')"><i>h33b026fagbc39g4306gbc36gd183e422264d</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </body>
+</html>

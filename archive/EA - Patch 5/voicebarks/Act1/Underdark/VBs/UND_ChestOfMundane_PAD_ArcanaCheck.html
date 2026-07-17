@@ -1,0 +1,810 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>UND_ChestOfMundane_PAD_ArcanaCheck</title>
+        <style>
+            body {
+                background-color: lightgrey;
+                font-family: monospace;
+                font-size: medium;
+            }
+            .title {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: xx-large;
+                display: block;
+                padding: 10px 0px 10px 10px;
+            }
+            .synopsis {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: medium;
+                display: block;
+                padding: 10px 0px 10px 10px;
+            }
+            .greeting {
+                background-color: white;
+            }
+            .question {
+                background-color: lightgreen;
+            }
+            .answer {
+                background-color: azure;
+            }
+            .cinematic {
+                background-color: lightpink;
+            }
+            .visualstate {
+                background-color: plum;
+            }
+            .nested {
+                background-color: salmon;
+            }
+            .jump {
+                background-color: khaki;
+            }
+            .alias {
+                background-color: peachpuff;
+            }
+            .activeroll {
+                background-color: lavender;
+            }
+            .passiveroll {
+                background-color: lightcyan;
+            }
+            .rollresult {
+                background-color: lightblue;
+            }
+            .empty {
+                background-color: cornsilk;
+            }
+            .trade {
+                background-color: lightyellow;
+            }
+            .pop {
+                background-color: white;
+            }
+            .other {
+                background-color: white;
+            }
+            .link {
+                background-color: whitesmoke;
+            }
+            .visible {
+                display: inline;
+            }
+            .invisible {
+                display: none;
+            }
+            .visible-flags {
+                display: block;
+                margin: 5px 0px 5px 5px;
+            }
+            .invisible-flags {
+                display: none;
+            }
+            .visible-nodecontext {
+                display: block;
+                margin: 5px 0px 5px 5px;
+            }
+            .invisible-nodecontext {
+                display: none;
+            }
+            .visible-node {
+                display: block;
+            }
+            .invisible-node {
+                display: none;
+            }
+            .expand-nodecontext {
+                cursor: pointer;
+            }
+            .collapse-nodecontext {
+                cursor: pointer;
+            }
+            .expand-flags {
+                cursor: pointer;
+            }
+            .collapse-flags {
+                cursor: pointer;
+            }
+            .expand-children {
+                cursor: pointer;
+            }
+            .collapse-children {
+                cursor: pointer;
+            }
+            .info {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .speaker {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .reactions {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .voiceline {
+                font-style: normal;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: medium;
+                font-weight: normal;
+                cursor: pointer;
+            }
+            .node {
+                width: auto;
+                height: 100%;
+                padding: 8px 0px 8px 8px;
+                margin: 8px 0px 8px 8px;
+                border: thin dotted;
+            }
+            .clipboard {
+                cursor: pointer;
+            }
+            .control {
+                cursor: pointer;
+                text-decoration: underline dotted;
+                text-decoration-color: blue;
+            }
+            .right {
+                float: right;
+            }
+            .actions {
+                margin: 16px 0px 16px 16px;
+            }
+            .notext {
+                font-size: 0;
+            }
+            .flag {
+                font-size: medium;
+            }
+            .flags {
+            }
+            .checkflags {
+            }
+            .setflags {
+            }
+            .flaggroup {
+            }
+        </style>
+        <script type="text/javascript">
+    
+document.addEventListener("click", (event) => {
+    const elt = document.elementFromPoint(event.clientX, event.clientY);
+    if (elt.tagName == 'DIV' && elt.id) {
+        elt.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    }
+});
+window.addEventListener("load", (event) => {
+    console.log('document loaded: ' + document.location);
+    if (document.location.hash) {
+        const node_uuid = document.location.hash.slice(1);
+        const elt = document.getElementById(node_uuid);
+        if (elt) {
+            expand_node(node_uuid);
+        }
+    }
+});
+function get_expand_flags_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-flags')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_flags_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-flags')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_flags_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('flags')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_flags(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_flags_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_flags_elt(div_elt).classList.replace('invisible', 'visible')
+    get_flags_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-flags', 'visible-flags')
+    });
+}
+function on_click_collapse_flags(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_flags_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_flags_elt(div_elt).classList.replace('visible', 'invisible')
+    get_flags_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-flags', 'invisible-flags')
+    });
+}
+
+function get_expand_nodecontext_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-nodecontext')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_nodecontext_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-nodecontext')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_nodecontext_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('nodecontext')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_nodecontext(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_nodecontext_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_nodecontext_elt(div_elt).classList.replace('invisible', 'visible')
+    get_nodecontext_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+    });
+}
+function on_click_collapse_nodecontext(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_nodecontext_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_nodecontext_elt(div_elt).classList.replace('visible', 'invisible')
+    get_nodecontext_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+    });
+}
+
+function get_expand_children_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-children')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_children_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-children')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_children_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('node')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_children(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_children_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_children_elt(div_elt).classList.replace('invisible', 'visible')
+    get_children_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-node', 'visible-node')
+    });
+}
+function on_click_collapse_children(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_children_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_children_elt(div_elt).classList.replace('visible', 'invisible')
+    get_children_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-node', 'invisible-node')
+    });
+}
+function expand_one_node(node_elt) {
+    var e = get_expand_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_collapse_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_flags_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-flags', 'visible-flags')
+        });
+    }
+
+    e = get_expand_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_collapse_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_nodecontext_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+        });
+    }
+
+    e = get_expand_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible')
+    }
+    e = get_collapse_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible')
+    }
+    e = get_children_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-node', 'visible-node')
+        });
+    }
+}
+function expand_node(uuid) {
+    const target_uuid = uuid;
+    const target_elt = document.getElementById(uuid);
+    if (target_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return false;
+    }
+    var node_uuid = target_elt.getAttribute('name');
+    console.log("node_uuid = " + node_uuid);
+    while (node_uuid != 'toplevelnode') {
+        const node_elt = document.getElementById(node_uuid);
+        if (node_elt == null) {
+            console.log("Node cannot be found: " + node_uuid);
+            break;
+        }
+        expand_one_node(node_elt);
+        node_uuid = node_elt.getAttribute('name');
+    }
+    target_elt.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    return false;
+}
+function expand_all() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        expand_one_node(nodes.item(i));
+    }
+}
+function collapse_one_node(node_elt) {
+    var e = get_expand_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_collapse_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_flags_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-flags', 'invisible-flags')
+        });
+    }
+
+    e = get_expand_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_collapse_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_nodecontext_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+        });
+    }
+
+    e = get_expand_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible')
+    }
+    e = get_collapse_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible')
+    }
+    e = get_children_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-node', 'invisible-node')
+        });
+    }
+}
+function collapse_all() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        collapse_one_node(nodes.item(i));
+    }
+}
+
+function expand_all_flags() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_collapse_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_flags_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('invisible-flags', 'visible-flags')
+            });
+        }
+    }
+}
+
+function collapse_all_flags() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_collapse_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_flags_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('visible-flags', 'invisible-flags')
+            });
+        }
+    }
+}
+
+function expand_all_nodecontexts() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_collapse_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_nodecontext_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+            });
+        }
+    }
+}
+
+function collapse_all_nodecontexts() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_collapse_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_nodecontext_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+            });
+        }
+    }
+}
+
+        </script>
+    </head>
+    <body>
+        <div class="title">UND_ChestOfMundane_PAD_ArcanaCheck</div>
+            <div class="synopsis"><label>Speaker 0: Player</label></div>
+        <div><label>Dialog UUID:&nbsp;</label><label class="clipboard" onclick="navigator.clipboard.writeText('6faf6d54-c01b-9c02-4f6e-687252fc2329')">6faf6d54-c01b-9c02-4f6e-687252fc2329</label></div>
+        <div><label>Timeline UUID:&nbsp;</label><label class="clipboard" >de3c2f8d-929a-5157-33df-7ef457441407</label></div>
+        <div><label>LSJ path: Gustav.pak:Mods/Gustav/Story/Dialogs/Act1/Underdark/VBs/UND_ChestOfMundane_PAD_ArcanaCheck.lsj</label></div>
+        <div><label>LSF path: not found</label></div>
+        <div><label>Dialog bank path: Gustav.pak:Public/Gustav/Content/Assets/Dialogs/Act1/Underdark/[PAK]_VBs/_merged.lsf</label></div>
+        <div class="actions">
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all()">Click here to EXPAND ALL</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all()">Click here to COLLAPSE ALL</label></span>            
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all_flags()">Click here to EXPAND ALL FLAGS</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all_flags()">Click here to COLLAPSE ALL FLAGS</label></span>            
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all_nodecontexts()">Click here to EXPAND ALL NODE CONTEXTS</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all_nodecontexts()">Click here to COLLAPSE ALL NODE CONTEXTS</label></span>            
+            <span><label>   |   </label></span>
+        </div>
+            <div id="0a1411e4-6dcb-4d12-acc3-850ef24f931f" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode | EndNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('0a1411e4-6dcb-4d12-acc3-850ef24f931f')"><i>0a1411e4-6dcb-4d12-acc3-850ef24f931f</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Player [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ffd08582-7396-4cac-bcd4-8f9cd0fd8ef3')">[REALLY_ASTARION]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('VGhhdCBjaGVzdCdzIG1hZ2ljLiBJdHMgZW5lcmd5IGhhcyBtZSBhbGwgYXRpbmdsZS4='))">That chest's magic. Its energy has me all atingle.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h56c5fc5eg8ec1g44d8g86c1ge28246102b98')"><i>h56c5fc5eg8ec1g44d8g86c1ge28246102b98</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('9b0354c0-56d9-4723-8034-918ac9abab19')">[REALLY_GALE]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('VHJpY2tsZXMgb2YgV2VhdmUgcmFkaWF0ZSBmcm9tIHRoYXQgY2hlc3Qu'))">Trickles of Weave radiate from that chest.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hf32cca69g66e9g4c24g8726ge941ccff5978')"><i>hf32cca69g66e9g4c24g8726ge941ccff5978</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('4ce6ddd6-0d46-436f-91ce-86dfe7e58156')">[REALLY_HELIA]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fFRoYXQgY2hlc3QgLi4uSSBmZWVsIHRpbmdsaW5nIGVuZXJneSBmcm9tIGl0IXw='))">|That chest ...I feel tingling energy from it!|</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h01d7d29fg0733g49d6gb721gc6f6abb9f8e4')"><i>h01d7d29fg0733g49d6gb721gc6f6abb9f8e4</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('1a2f70d6-8ead-4eb5-a824-79ee1971764a')">[REALLY_KARLACH]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fFRoYXQgY2hlc3QgLi4uSSBmZWVsIHRpbmdsaW5nIGVuZXJneSBmcm9tIGl0IXw='))">|That chest ...I feel tingling energy from it!|</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h2d91c978g0192g4c15g9e12g08c01d27e4e8')"><i>h2d91c978g0192g4c15g9e12g08c01d27e4e8</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('b5682d1d-c395-489c-9675-1f9b0c328ea5')">[REALLY_LAEZEL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('TXkgc2tpbiBpcyBjcmF3bGluZy4gVGhhdCBjaGVzdCBpcyA8aT5zdGVlcGVkPC9pPiBpbiBtYWdpYy4='))">My skin is crawling. That chest is <i>steeped</i> in magic.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h5cb9df93gb32ag4574gbd64gf773ea5bb008')"><i>h5cb9df93gb32ag4574gbd64gf773ea5bb008</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('2cff7db0-ae50-4267-82ea-84e961d3e3fa')">[REALLY_MINSC]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fFRoYXQgY2hlc3QgLi4uSSBmZWVsIHRpbmdsaW5nIGVuZXJneSBmcm9tIGl0IXw='))">|That chest ...I feel tingling energy from it!|</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h82ae46acg0badg4503g859ag7bf1bbc7b60f')"><i>h82ae46acg0badg4503g859ag7bf1bbc7b60f</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('642d2aee-e3df-47e3-9f47-bbcd441bb9e0')">[REALLY_SHADOWHEART]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('TWFnaWMgLSBmcm9tIHRoYXQgY2hlc3QuIEkgY2FuIGZlZWwgaXQu'))">Magic - from that chest. I can feel it.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h33752a07ga29eg43e7g98d1g78e1d97e05ad')"><i>h33752a07ga29eg43e7g98d1g78e1d97e05ad</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('5f40def5-d3ec-4698-a367-01a339888956')">[REALLY_WYLL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('RmVlbCB0aGF0IHRpbmdsZT8gVGhhdCBjaGVzdCBwcmFjdGljYWxseSBvb3plcyBtYWdpYy4='))">Feel that tingle? That chest practically oozes magic.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h2aa9762fg551eg4fb2gae2bgf878576c961b')"><i>h2aa9762fg551eg4fb2gae2bgf878576c961b</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('VGhhdCBjaGVzdC4gSSBjYW4gPGk+ZmVlbCA8L2k+aXRzIG1hZ2ljLiA='))">That chest. I can <i>feel </i>its magic. </label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hff3a84f3g1a00g4b17g80d0g1a6de6b89e3e')"><i>hff3a84f3g1a00g4b17g80d0g1a6de6b89e3e</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                </ul>
+            </div>
+            <label class="expand-flags visible" onclick="on_click_expand_flags('0a1411e4-6dcb-4d12-acc3-850ef24f931f')">[+]</label>
+            <label class="collapse-flags invisible" onclick="on_click_collapse_flags('0a1411e4-6dcb-4d12-acc3-850ef24f931f')">[-]</label>
+            <label> <strong>Flags</strong></label><br>
+            <div class="invisible-flags checkflags flags">
+                <li class="flaggroup" name="Global">Check "Global" flag(s):
+                    <ul>
+                        <li class="notext" name="44963e87-4638-423a-96c1-86001e913982" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('UND_ChestOfMundane_State_ArcanaCheckSuccess_44963e87-4638-423a-96c1-86001e913982')">UND_ChestOfMundane_State_ArcanaCheckSuccess_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('44963e87-4638-423a-96c1-86001e913982')">44963e87-4638-423a-96c1-86001e913982</label>
+                            <label class="flag">&nbsp;is True</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+        </div>
+        <div id="892beaff-25e3-941e-5e77-dd4ece650a60" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode | EndNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('892beaff-25e3-941e-5e77-dd4ece650a60')"><i>892beaff-25e3-941e-5e77-dd4ece650a60</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Player [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ffd08582-7396-4cac-bcd4-8f9cd0fd8ef3')">[REALLY_ASTARION]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SSBjYW4gZmVlbCB0aGUgdGluZ2xlIG9mIG1hZ2ljLiBTb21ldGhpbmcgY2xvc2UgYnkuLi4='))">I can feel the tingle of magic. Something close by...</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h9656c41fgdccbg4d04g9519g24a20fee5e20')"><i>h9656c41fgdccbg4d04g9519g24a20fee5e20</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('9b0354c0-56d9-4723-8034-918ac9abab19')">[REALLY_GALE]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SSBmZWVsIHRyaWNrbGVzIG9mIFdlYXZlLCBidXQgd2hhdCdzIHRoZWlyIHNvdXJjZT8='))">I feel trickles of Weave, but what's their source?</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hc546dea6g9636g4780gb0a7ga44ae6419a90')"><i>hc546dea6g9636g4780gb0a7ga44ae6419a90</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('4ce6ddd6-0d46-436f-91ce-86dfe7e58156')">[REALLY_HELIA]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fFdoYXQgaXMgdGhpcyAuLi4gdGluZ2xpbmcgZmVlbGluZz98'))">|What is this ... tingling feeling?|</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hb21d048dg2e31g4afcgbd3eg11c3d8ea3caf')"><i>hb21d048dg2e31g4afcgbd3eg11c3d8ea3caf</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('1a2f70d6-8ead-4eb5-a824-79ee1971764a')">[REALLY_KARLACH]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fFdoYXQgaXMgdGhpcyAuLi4gdGluZ2xpbmcgZmVlbGluZz98'))">|What is this ... tingling feeling?|</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hd3d02a00g1e2dg487cgb3d4g171cffbfaf6f')"><i>hd3d02a00g1e2dg487cgb3d4g171cffbfaf6f</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('b5682d1d-c395-489c-9675-1f9b0c328ea5')">[REALLY_LAEZEL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('TWFnaWMgbmVhcmJ5LiBJdCBpcyBtYWtpbmcgbXkgc2tpbiBjcmF3bC4='))">Magic nearby. It is making my skin crawl.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h50228b7cgf50ag487ega22agd9104cc90e64')"><i>h50228b7cgf50ag487ega22agd9104cc90e64</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('2cff7db0-ae50-4267-82ea-84e961d3e3fa')">[REALLY_MINSC]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fFdoYXQgaXMgdGhpcyAuLi4gdGluZ2xpbmcgZmVlbGluZz98'))">|What is this ... tingling feeling?|</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hc132f655gd1d5g488dg8660g830908ea2f77')"><i>hc132f655gd1d5g488dg8660g830908ea2f77</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('642d2aee-e3df-47e3-9f47-bbcd441bb9e0')">[REALLY_SHADOWHEART]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SSBmZWVsIHNvbWV0aGluZy4gTWFnaWMuLi4gYnV0IHdoZXJlPw=='))">I feel something. Magic... but where?</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h3631c60agf0abg47e8gb995g8075fd256245')"><i>h3631c60agf0abg47e8gb995g8075fd256245</i></label>
+                        <label> (version 3)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('5f40def5-d3ec-4698-a367-01a339888956')">[REALLY_WYLL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('VGhlcmUncyBtYWdpYyBuZWFyYnkgLSBJIGNhbiBmZWVsIGl0Lg=='))">There's magic nearby - I can feel it.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ha3cdd6edg2489g4e4dgb93ag3ec6c93afb3f')"><i>ha3cdd6edg2489g4e4dgb93ag3ec6c93afb3f</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SSBzZW5zZSBtYWdpYy4gQnV0IHdoZXJlPw=='))">I sense magic. But where?</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h94d72173ga905g42bbg8bf0g5cabef0ddfd7')"><i>h94d72173ga905g42bbg8bf0g5cabef0ddfd7</i></label>
+                        <label> (version 3)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                </ul>
+            </div>
+            <label class="expand-flags visible" onclick="on_click_expand_flags('892beaff-25e3-941e-5e77-dd4ece650a60')">[+]</label>
+            <label class="collapse-flags invisible" onclick="on_click_collapse_flags('892beaff-25e3-941e-5e77-dd4ece650a60')">[-]</label>
+            <label> <strong>Flags</strong></label><br>
+            <div class="invisible-flags checkflags flags">
+                <li class="flaggroup" name="Global">Check "Global" flag(s):
+                    <ul>
+                        <li class="notext" name="44963e87-4638-423a-96c1-86001e913982" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('UND_ChestOfMundane_State_ArcanaCheckSuccess_44963e87-4638-423a-96c1-86001e913982')">UND_ChestOfMundane_State_ArcanaCheckSuccess_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('44963e87-4638-423a-96c1-86001e913982')">44963e87-4638-423a-96c1-86001e913982</label>
+                            <label class="flag">&nbsp;is False</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+        </div>
+
+    </body>
+</html>

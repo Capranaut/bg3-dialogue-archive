@@ -1,0 +1,963 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>UND_ArcaneTower_VB_LiftBlocked</title>
+        <style>
+            body {
+                background-color: lightgrey;
+                font-family: monospace;
+                font-size: medium;
+            }
+            .title {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: xx-large;
+                display: block;
+                padding: 10px 0px 10px 10px;
+            }
+            .synopsis {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: medium;
+                display: block;
+                padding: 10px 0px 10px 10px;
+            }
+            .greeting {
+                background-color: white;
+            }
+            .question {
+                background-color: lightgreen;
+            }
+            .answer {
+                background-color: azure;
+            }
+            .cinematic {
+                background-color: lightpink;
+            }
+            .visualstate {
+                background-color: plum;
+            }
+            .nested {
+                background-color: salmon;
+            }
+            .jump {
+                background-color: khaki;
+            }
+            .alias {
+                background-color: peachpuff;
+            }
+            .activeroll {
+                background-color: lavender;
+            }
+            .passiveroll {
+                background-color: lightcyan;
+            }
+            .rollresult {
+                background-color: lightblue;
+            }
+            .empty {
+                background-color: cornsilk;
+            }
+            .trade {
+                background-color: lightyellow;
+            }
+            .pop {
+                background-color: white;
+            }
+            .other {
+                background-color: white;
+            }
+            .link {
+                background-color: whitesmoke;
+            }
+            .visible {
+                display: inline;
+            }
+            .invisible {
+                display: none;
+            }
+            .visible-flags {
+                display: block;
+                margin: 5px 0px 5px 5px;
+            }
+            .invisible-flags {
+                display: none;
+            }
+            .visible-nodecontext {
+                display: block;
+                margin: 5px 0px 5px 5px;
+            }
+            .invisible-nodecontext {
+                display: none;
+            }
+            .visible-node {
+                display: block;
+            }
+            .invisible-node {
+                display: none;
+            }
+            .expand-nodecontext {
+                cursor: pointer;
+            }
+            .collapse-nodecontext {
+                cursor: pointer;
+            }
+            .expand-flags {
+                cursor: pointer;
+            }
+            .collapse-flags {
+                cursor: pointer;
+            }
+            .expand-children {
+                cursor: pointer;
+            }
+            .collapse-children {
+                cursor: pointer;
+            }
+            .info {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .speaker {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .reactions {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .voiceline {
+                font-style: normal;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: medium;
+                font-weight: normal;
+                cursor: pointer;
+            }
+            .node {
+                width: auto;
+                height: 100%;
+                padding: 8px 0px 8px 8px;
+                margin: 8px 0px 8px 8px;
+                border: thin dotted;
+            }
+            .clipboard {
+                cursor: pointer;
+            }
+            .control {
+                cursor: pointer;
+                text-decoration: underline dotted;
+                text-decoration-color: blue;
+            }
+            .right {
+                float: right;
+            }
+            .actions {
+                margin: 16px 0px 16px 16px;
+            }
+            .notext {
+                font-size: 0;
+            }
+            .flag {
+                font-size: medium;
+            }
+            .flags {
+            }
+            .checkflags {
+            }
+            .setflags {
+            }
+            .flaggroup {
+            }
+        </style>
+        <script type="text/javascript">
+    
+document.addEventListener("click", (event) => {
+    const elt = document.elementFromPoint(event.clientX, event.clientY);
+    if (elt.tagName == 'DIV' && elt.id) {
+        elt.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    }
+});
+window.addEventListener("load", (event) => {
+    console.log('document loaded: ' + document.location);
+    if (document.location.hash) {
+        const node_uuid = document.location.hash.slice(1);
+        const elt = document.getElementById(node_uuid);
+        if (elt) {
+            expand_node(node_uuid);
+        }
+    }
+});
+function get_expand_flags_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-flags')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_flags_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-flags')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_flags_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('flags')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_flags(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_flags_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_flags_elt(div_elt).classList.replace('invisible', 'visible')
+    get_flags_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-flags', 'visible-flags')
+    });
+}
+function on_click_collapse_flags(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_flags_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_flags_elt(div_elt).classList.replace('visible', 'invisible')
+    get_flags_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-flags', 'invisible-flags')
+    });
+}
+
+function get_expand_nodecontext_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-nodecontext')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_nodecontext_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-nodecontext')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_nodecontext_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('nodecontext')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_nodecontext(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_nodecontext_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_nodecontext_elt(div_elt).classList.replace('invisible', 'visible')
+    get_nodecontext_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+    });
+}
+function on_click_collapse_nodecontext(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_nodecontext_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_nodecontext_elt(div_elt).classList.replace('visible', 'invisible')
+    get_nodecontext_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+    });
+}
+
+function get_expand_children_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-children')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_children_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-children')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_children_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('node')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_children(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_children_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_children_elt(div_elt).classList.replace('invisible', 'visible')
+    get_children_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-node', 'visible-node')
+    });
+}
+function on_click_collapse_children(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_children_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_children_elt(div_elt).classList.replace('visible', 'invisible')
+    get_children_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-node', 'invisible-node')
+    });
+}
+function expand_one_node(node_elt) {
+    var e = get_expand_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_collapse_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_flags_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-flags', 'visible-flags')
+        });
+    }
+
+    e = get_expand_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_collapse_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_nodecontext_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+        });
+    }
+
+    e = get_expand_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible')
+    }
+    e = get_collapse_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible')
+    }
+    e = get_children_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-node', 'visible-node')
+        });
+    }
+}
+function expand_node(uuid) {
+    const target_uuid = uuid;
+    const target_elt = document.getElementById(uuid);
+    if (target_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return false;
+    }
+    var node_uuid = target_elt.getAttribute('name');
+    console.log("node_uuid = " + node_uuid);
+    while (node_uuid != 'toplevelnode') {
+        const node_elt = document.getElementById(node_uuid);
+        if (node_elt == null) {
+            console.log("Node cannot be found: " + node_uuid);
+            break;
+        }
+        expand_one_node(node_elt);
+        node_uuid = node_elt.getAttribute('name');
+    }
+    target_elt.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    return false;
+}
+function expand_all() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        expand_one_node(nodes.item(i));
+    }
+}
+function collapse_one_node(node_elt) {
+    var e = get_expand_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_collapse_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_flags_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-flags', 'invisible-flags')
+        });
+    }
+
+    e = get_expand_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_collapse_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_nodecontext_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+        });
+    }
+
+    e = get_expand_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible')
+    }
+    e = get_collapse_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible')
+    }
+    e = get_children_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-node', 'invisible-node')
+        });
+    }
+}
+function collapse_all() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        collapse_one_node(nodes.item(i));
+    }
+}
+
+function expand_all_flags() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_collapse_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_flags_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('invisible-flags', 'visible-flags')
+            });
+        }
+    }
+}
+
+function collapse_all_flags() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_collapse_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_flags_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('visible-flags', 'invisible-flags')
+            });
+        }
+    }
+}
+
+function expand_all_nodecontexts() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_collapse_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_nodecontext_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+            });
+        }
+    }
+}
+
+function collapse_all_nodecontexts() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_collapse_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_nodecontext_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+            });
+        }
+    }
+}
+
+        </script>
+    </head>
+    <body>
+        <div class="title">UND_ArcaneTower_VB_LiftBlocked</div>
+            <div class="synopsis"><label>Speaker 0: Player</label></div>
+        <div><label>Dialog UUID:&nbsp;</label><label class="clipboard" onclick="navigator.clipboard.writeText('ea37c5f5-cc8c-00b6-4bc9-4be62aa73f46')">ea37c5f5-cc8c-00b6-4bc9-4be62aa73f46</label></div>
+        <div><label>Timeline UUID:&nbsp;</label><label class="clipboard" >5db04422-0e57-0318-2818-3fe4ec7433c5</label></div>
+        <div><label>LSJ path: Gustav.pak:Mods/Gustav/Story/Dialogs/Act1/Underdark/VBs/UND_ArcaneTower_VB_LiftBlocked.lsj</label></div>
+        <div><label>LSF path: not found</label></div>
+        <div><label>Dialog bank path: Gustav.pak:Public/Gustav/Content/Assets/Dialogs/Act1/[PAK]_Underdark/_merged.lsf</label></div>
+        <div class="actions">
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all()">Click here to EXPAND ALL</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all()">Click here to COLLAPSE ALL</label></span>            
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all_flags()">Click here to EXPAND ALL FLAGS</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all_flags()">Click here to COLLAPSE ALL FLAGS</label></span>            
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all_nodecontexts()">Click here to EXPAND ALL NODE CONTEXTS</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all_nodecontexts()">Click here to COLLAPSE ALL NODE CONTEXTS</label></span>            
+            <span><label>   |   </label></span>
+        </div>
+            <div id="4c5f66b8-dfb2-72f6-1520-514935807102" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode | EndNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('4c5f66b8-dfb2-72f6-1520-514935807102')"><i>4c5f66b8-dfb2-72f6-1520-514935807102</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Player [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ffd08582-7396-4cac-bcd4-8f9cd0fd8ef3')">[REALLY_ASTARION]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('V2h5IGlzIGl0IGJyb2tlbj8gWW91J3JlIHBvd2VyZWQgYnkgbWFnaWMsIGZvciBnb29kbmVzcyBzYWtlIQ=='))">Why is it broken? You're powered by magic, for goodness sake!</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h520b95fag31a7g4b45ga985gb65ed4123dcc')"><i>h520b95fag31a7g4b45ga985gb65ed4123dcc</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('9b0354c0-56d9-4723-8034-918ac9abab19')">[REALLY_GALE]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('VGhpcyBjb250cmFwdGlvbiBpcyBwb3dlcmVkIGJ5IG1hZ2ljLCBidXQgaXRzIG1hZ2ljIHNlZW1zIHRvIGJlIGdvbmUgLSBvciBkb3JtYW50Lg=='))">This contraption is powered by magic, but its magic seems to be gone - or dormant.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hc0751dc3g00ecg4872g844dgc8182ce94906')"><i>hc0751dc3g00ecg4872g844dgc8182ce94906</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('4ce6ddd6-0d46-436f-91ce-86dfe7e58156')">[REALLY_HELIA]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Xw=='))">_</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h83ee313fgb21fg422fgb172g571d6d5722a0')"><i>h83ee313fgb21fg422fgb172g571d6d5722a0</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('1a2f70d6-8ead-4eb5-a824-79ee1971764a')">[REALLY_KARLACH]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fEthcmxhIGNvbW1lbnQhfA=='))">|Karla comment!|</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h7f1de246g5a4dg44d7g8f7dge5257e345c71')"><i>h7f1de246g5a4dg44d7g8f7dge5257e345c71</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('b5682d1d-c395-489c-9675-1f9b0c328ea5')">[REALLY_LAEZEL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('QSBtYWdpY2FsIGRldmljZSwgbm8gZG91YnQuIE5vdyB0byBnZXQgaXQgd29ya2luZy4='))">A magical device, no doubt. Now to get it working.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h8f2304cfg3dbeg4c29gbdddgb9a8abf5b332')"><i>h8f2304cfg3dbeg4c29gbdddgb9a8abf5b332</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('2cff7db0-ae50-4267-82ea-84e961d3e3fa')">[REALLY_MINSC]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Xw=='))">_</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hc504d6d7gd3e7g4700g87fbga3cb950c1ee9')"><i>hc504d6d7gd3e7g4700g87fbga3cb950c1ee9</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('642d2aee-e3df-47e3-9f47-bbcd441bb9e0')">[REALLY_SHADOWHEART]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('UG93ZXJlZCBieSBtYWdpYywgaXQgc2VlbXMuIE5vdyB0byBqdXN0IGdldCBpdCB3b3JraW5nLi4u'))">Powered by magic, it seems. Now to just get it working...</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h155ac1bbg140dg4904g983agaae2263271e4')"><i>h155ac1bbg140dg4904g983agaae2263271e4</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('5f40def5-d3ec-4698-a367-01a339888956')">[REALLY_WYLL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('VGhpcyB0aGluZyBydW5zIG9uIG1hZ2ljLiBUaGVyZSBtdXN0IGJlIGEgd2F5IHRvIGdldCBpdCB3b3JraW5nLg=='))">This thing runs on magic. There must be a way to get it working.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ha91be9bagb1c6g4c15gbbc2g8b27b3b3cb1b')"><i>ha91be9bagb1c6g4c15gbbc2g8b27b3b3cb1b</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('TG9va3MgbGlrZSBzb21lIGtpbmQgb2YgbWFnaWNhbCBjb250cmFwdGlvbi4gTm93IHRvIGdldCBpdCB0byB3b3JrLi4u'))">Looks like some kind of magical contraption. Now to get it to work...</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hbbfc9286g24ebg4e48g8ee1gcbceebf26295')"><i>hbbfc9286g24ebg4e48g8ee1gcbceebf26295</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                </ul>
+            </div>
+            <label class="expand-flags visible" onclick="on_click_expand_flags('4c5f66b8-dfb2-72f6-1520-514935807102')">[+]</label>
+            <label class="collapse-flags invisible" onclick="on_click_collapse_flags('4c5f66b8-dfb2-72f6-1520-514935807102')">[-]</label>
+            <label> <strong>Flags</strong></label><br>
+            <div class="invisible-flags checkflags flags">
+                <li class="flaggroup" name="Dialog">Check "Dialog" flag(s):
+                    <ul>
+                        <li class="notext" name="e622c842-f72d-ee9c-f883-f5f59d07d815_0_Player" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('UND_ArcaneTower_VB_LiftBocked_HasMet_e622c842-f72d-ee9c-f883-f5f59d07d815')">UND_ArcaneTower_VB_LiftBocked_HasMet_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('e622c842-f72d-ee9c-f883-f5f59d07d815')">e622c842-f72d-ee9c-f883-f5f59d07d815</label>
+                            <label class="flag">&nbsp;is False on Player (speaker 0)</label>
+                        </li>
+                    </ul>
+                </li>
+                <li class="flaggroup" name="Object">Check "Object" flag(s):
+                    <ul>
+                        <li class="notext" name="5401976f-fa94-4613-b4eb-9b4cc60b5b88_0_Player" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('UND_ArcaneTower_LiftBlocked_SkillCheckPassed_5401976f-fa94-4613-b4eb-9b4cc60b5b88')">UND_ArcaneTower_LiftBlocked_SkillCheckPassed_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('5401976f-fa94-4613-b4eb-9b4cc60b5b88')">5401976f-fa94-4613-b4eb-9b4cc60b5b88</label>
+                            <label class="flag">&nbsp;is True on Player (speaker 0)</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+            <div class="invisible-flags setflags flags">
+                <li class="flaggroup" name="Dialog">Set "Dialog" flag(s):
+                    <ul>
+                        <li class="notext" name="e622c842-f72d-ee9c-f883-f5f59d07d815_0_Player" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('UND_ArcaneTower_VB_LiftBocked_HasMet_e622c842-f72d-ee9c-f883-f5f59d07d815')">UND_ArcaneTower_VB_LiftBocked_HasMet_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('e622c842-f72d-ee9c-f883-f5f59d07d815')">e622c842-f72d-ee9c-f883-f5f59d07d815</label>
+                            <label class="flag">&nbsp;to True on Player (speaker 0)</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+        </div>
+        <div id="bb8b5d4b-f13b-c5c3-e29d-a0c0edaa3897" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode | EndNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('bb8b5d4b-f13b-c5c3-e29d-a0c0edaa3897')"><i>bb8b5d4b-f13b-c5c3-e29d-a0c0edaa3897</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Player [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ffd08582-7396-4cac-bcd4-8f9cd0fd8ef3')">[REALLY_ASTARION]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SXQgZG9lc24ndCA8aT5sb29rIDwvaT5icm9rZW4uIFRoZW4gYWdhaW4sIG5vbmUgb2YgdXMgZG8u'))">It doesn't <i>look </i>broken. Then again, none of us do.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h616668acg58b6g40fdga587geaa7c3f1105e')"><i>h616668acg58b6g40fdga587geaa7c3f1105e</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('9b0354c0-56d9-4723-8034-918ac9abab19')">[REALLY_GALE]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SXQgZG9lc24ndCBsb29rIGRlZmVjdGl2ZSwgYnV0IGl0cyBtYWdpYyBhdXJhIGlzIHRvbyBmYWludCBmb3IgaXQgdG8gb3BlcmF0ZS4='))">It doesn't look defective, but its magic aura is too faint for it to operate.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h6943b8f2g1ba0g4149g914agd7e6dc97fdd4')"><i>h6943b8f2g1ba0g4149g914agd7e6dc97fdd4</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('4ce6ddd6-0d46-436f-91ce-86dfe7e58156')">[REALLY_HELIA]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Xw=='))">_</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hf2a2b58cg317bg40b9g8a18ga6b3e40d7bc9')"><i>hf2a2b58cg317bg40b9g8a18ga6b3e40d7bc9</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('1a2f70d6-8ead-4eb5-a824-79ee1971764a')">[REALLY_KARLACH]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fEthcmxhIGNvbW1lbnQhfA=='))">|Karla comment!|</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h6e1c5541g64b8g4d03g9f92gde321a554eb1')"><i>h6e1c5541g64b8g4d03g9f92gde321a554eb1</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('b5682d1d-c395-489c-9675-1f9b0c328ea5')">[REALLY_LAEZEL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Tm90aGluZy4gVGhlcmUgPGk+bXVzdDwvaT4gYmUgYSB3YXkgdG8gZ2V0IGl0IHdvcmtpbmcu'))">Nothing. There <i>must</i> be a way to get it working.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('haf549f6agb4d7g4838gae63g9ed74602fcb2')"><i>haf549f6agb4d7g4838gae63g9ed74602fcb2</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('2cff7db0-ae50-4267-82ea-84e961d3e3fa')">[REALLY_MINSC]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Xw=='))">_</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h350dd39dg1d62g437aga714g8baeeadb8aab')"><i>h350dd39dg1d62g437aga714g8baeeadb8aab</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('642d2aee-e3df-47e3-9f47-bbcd441bb9e0')">[REALLY_SHADOWHEART]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Tm90IGEgYnVkZ2UuIEJldHRlciB0YWtlIGEgbG9vayBhcm91bmQuLi4='))">Not a budge. Better take a look around...</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h81fa469bg1622g4936g8ffag7ea176692bd4')"><i>h81fa469bg1622g4936g8ffag7ea176692bd4</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('5f40def5-d3ec-4698-a367-01a339888956')">[REALLY_WYLL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('U3R1Y2suIEFubm95aW5nLg=='))">Stuck. Annoying.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('he1492eadga115g4353g94d4gd6c74a976164')"><i>he1492eadga115g4353g94d4gd6c74a976164</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Tm90aGluZydzIGhhcHBlbmluZy4uLiBidXQgaXQgZG9lc24ndCBsb29rIGJyb2tlbi4='))">Nothing's happening... but it doesn't look broken.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h68c0d948g1fd3g42c6g9937gf6f54c55d9ae')"><i>h68c0d948g1fd3g42c6g9937gf6f54c55d9ae</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                </ul>
+            </div>
+            <label class="expand-flags visible" onclick="on_click_expand_flags('bb8b5d4b-f13b-c5c3-e29d-a0c0edaa3897')">[+]</label>
+            <label class="collapse-flags invisible" onclick="on_click_collapse_flags('bb8b5d4b-f13b-c5c3-e29d-a0c0edaa3897')">[-]</label>
+            <label> <strong>Flags</strong></label><br>
+            <div class="invisible-flags checkflags flags">
+                <li class="flaggroup" name="Dialog">Check "Dialog" flag(s):
+                    <ul>
+                        <li class="notext" name="e622c842-f72d-ee9c-f883-f5f59d07d815_0_Player" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('UND_ArcaneTower_VB_LiftBocked_HasMet_e622c842-f72d-ee9c-f883-f5f59d07d815')">UND_ArcaneTower_VB_LiftBocked_HasMet_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('e622c842-f72d-ee9c-f883-f5f59d07d815')">e622c842-f72d-ee9c-f883-f5f59d07d815</label>
+                            <label class="flag">&nbsp;is False on Player (speaker 0)</label>
+                        </li>
+                    </ul>
+                </li>
+                <li class="flaggroup" name="Object">Check "Object" flag(s):
+                    <ul>
+                        <li class="notext" name="5401976f-fa94-4613-b4eb-9b4cc60b5b88_0_Player" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('UND_ArcaneTower_LiftBlocked_SkillCheckPassed_5401976f-fa94-4613-b4eb-9b4cc60b5b88')">UND_ArcaneTower_LiftBlocked_SkillCheckPassed_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('5401976f-fa94-4613-b4eb-9b4cc60b5b88')">5401976f-fa94-4613-b4eb-9b4cc60b5b88</label>
+                            <label class="flag">&nbsp;is False on Player (speaker 0)</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+            <div class="invisible-flags setflags flags">
+                <li class="flaggroup" name="Dialog">Set "Dialog" flag(s):
+                    <ul>
+                        <li class="notext" name="e622c842-f72d-ee9c-f883-f5f59d07d815_0_Player" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('UND_ArcaneTower_VB_LiftBocked_HasMet_e622c842-f72d-ee9c-f883-f5f59d07d815')">UND_ArcaneTower_VB_LiftBocked_HasMet_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('e622c842-f72d-ee9c-f883-f5f59d07d815')">e622c842-f72d-ee9c-f883-f5f59d07d815</label>
+                            <label class="flag">&nbsp;to True on Player (speaker 0)</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+        </div>
+        <div id="4a24ab54-77f2-561a-b114-1c999c00c526" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode | EndNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('4a24ab54-77f2-561a-b114-1c999c00c526')"><i>4a24ab54-77f2-561a-b114-1c999c00c526</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Player [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ffd08582-7396-4cac-bcd4-8f9cd0fd8ef3')">[REALLY_ASTARION]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('U3RpbGwgdXNlbGVzcywgSSBzZWUu'))">Still useless, I see.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hac72034ageb48g4b77ga3e0g12b2bf61a992')"><i>hac72034ageb48g4b77ga3e0g12b2bf61a992</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('9b0354c0-56d9-4723-8034-918ac9abab19')">[REALLY_GALE]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SXQncyBzdGlsbCBiZXJlZnQgb2YgcG93ZXIu'))">It's still bereft of power.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('ha0a3a689ge248g4bbcgb79egd132a4a157cf')"><i>ha0a3a689ge248g4bbcgb79egd132a4a157cf</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('4ce6ddd6-0d46-436f-91ce-86dfe7e58156')">[REALLY_HELIA]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Xw=='))">_</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h1b41f321gb028g42c2g9182ge5d0dee501a6')"><i>h1b41f321gb028g42c2g9182ge5d0dee501a6</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('1a2f70d6-8ead-4eb5-a824-79ee1971764a')">[REALLY_KARLACH]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('fEthcmxhIGNvbW1lbnQhfA=='))">|Karla comment!|</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hc59d6040ga1cdg4a04g83e2g2066e07d5834')"><i>hc59d6040ga1cdg4a04g83e2g2066e07d5834</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('b5682d1d-c395-489c-9675-1f9b0c328ea5')">[REALLY_LAEZEL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Tm90aGluZy4='))">Nothing.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hf096ab48gef7cg408fga122gb557e26691d7')"><i>hf096ab48gef7cg408fga122gb557e26691d7</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('2cff7db0-ae50-4267-82ea-84e961d3e3fa')">[REALLY_MINSC]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('Xw=='))">_</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hb7a5b521g598dg49a1g9796g6f7e88444cc8')"><i>hb7a5b521g598dg49a1g9796g6f7e88444cc8</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('642d2aee-e3df-47e3-9f47-bbcd441bb9e0')">[REALLY_SHADOWHEART]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('U3RpbGwgbm90aGluZy4gQmxvb2R5IGNvbnRyYXB0aW9uLg=='))">Still nothing. Bloody contraption.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h57a60e6eg8e6fg4c1dg8efeg87776d83c74b')"><i>h57a60e6eg8e6fg4c1dg8efeg87776d83c74b</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('5f40def5-d3ec-4698-a367-01a339888956')">[REALLY_WYLL]</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('U3RpbGwgc3R1Y2su'))">Still stuck.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hc9016c1dgd9d5g4aa5g9ff0g17e584387369')"><i>hc9016c1dgd9d5g4aa5g9ff0g17e584387369</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('U3RpbGwgbm90aGluZy4='))">Still nothing.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h2bb4cc20g8144g48e0g9b3dg24ce488e908a')"><i>h2bb4cc20g8144g48e0g9b3dg24ce488e908a</i></label>
+                        <label> (version 1)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('-')">-</label>
+                    </li>
+                </ul>
+            </div>
+            <label class="expand-flags visible" onclick="on_click_expand_flags('4a24ab54-77f2-561a-b114-1c999c00c526')">[+]</label>
+            <label class="collapse-flags invisible" onclick="on_click_collapse_flags('4a24ab54-77f2-561a-b114-1c999c00c526')">[-]</label>
+            <label> <strong>Flags</strong></label><br>
+            <div class="invisible-flags checkflags flags">
+                <li class="flaggroup" name="Dialog">Check "Dialog" flag(s):
+                    <ul>
+                        <li class="notext" name="e622c842-f72d-ee9c-f883-f5f59d07d815_0_Player" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('UND_ArcaneTower_VB_LiftBocked_HasMet_e622c842-f72d-ee9c-f883-f5f59d07d815')">UND_ArcaneTower_VB_LiftBocked_HasMet_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('e622c842-f72d-ee9c-f883-f5f59d07d815')">e622c842-f72d-ee9c-f883-f5f59d07d815</label>
+                            <label class="flag">&nbsp;is True on Player (speaker 0)</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+        </div>
+
+    </body>
+</html>

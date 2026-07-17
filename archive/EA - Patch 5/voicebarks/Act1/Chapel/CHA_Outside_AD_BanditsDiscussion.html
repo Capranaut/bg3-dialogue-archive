@@ -1,0 +1,847 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>CHA_Outside_AD_BanditsDiscussion</title>
+        <style>
+            body {
+                background-color: lightgrey;
+                font-family: monospace;
+                font-size: medium;
+            }
+            .title {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: xx-large;
+                display: block;
+                padding: 10px 0px 10px 10px;
+            }
+            .synopsis {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: medium;
+                display: block;
+                padding: 10px 0px 10px 10px;
+            }
+            .greeting {
+                background-color: white;
+            }
+            .question {
+                background-color: lightgreen;
+            }
+            .answer {
+                background-color: azure;
+            }
+            .cinematic {
+                background-color: lightpink;
+            }
+            .visualstate {
+                background-color: plum;
+            }
+            .nested {
+                background-color: salmon;
+            }
+            .jump {
+                background-color: khaki;
+            }
+            .alias {
+                background-color: peachpuff;
+            }
+            .activeroll {
+                background-color: lavender;
+            }
+            .passiveroll {
+                background-color: lightcyan;
+            }
+            .rollresult {
+                background-color: lightblue;
+            }
+            .empty {
+                background-color: cornsilk;
+            }
+            .trade {
+                background-color: lightyellow;
+            }
+            .pop {
+                background-color: white;
+            }
+            .other {
+                background-color: white;
+            }
+            .link {
+                background-color: whitesmoke;
+            }
+            .visible {
+                display: inline;
+            }
+            .invisible {
+                display: none;
+            }
+            .visible-flags {
+                display: block;
+                margin: 5px 0px 5px 5px;
+            }
+            .invisible-flags {
+                display: none;
+            }
+            .visible-nodecontext {
+                display: block;
+                margin: 5px 0px 5px 5px;
+            }
+            .invisible-nodecontext {
+                display: none;
+            }
+            .visible-node {
+                display: block;
+            }
+            .invisible-node {
+                display: none;
+            }
+            .expand-nodecontext {
+                cursor: pointer;
+            }
+            .collapse-nodecontext {
+                cursor: pointer;
+            }
+            .expand-flags {
+                cursor: pointer;
+            }
+            .collapse-flags {
+                cursor: pointer;
+            }
+            .expand-children {
+                cursor: pointer;
+            }
+            .collapse-children {
+                cursor: pointer;
+            }
+            .info {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .speaker {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .reactions {
+                font-style: normal;
+                font-weight: normal;
+            }
+            .voiceline {
+                font-style: normal;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: medium;
+                font-weight: normal;
+                cursor: pointer;
+            }
+            .node {
+                width: auto;
+                height: 100%;
+                padding: 8px 0px 8px 8px;
+                margin: 8px 0px 8px 8px;
+                border: thin dotted;
+            }
+            .clipboard {
+                cursor: pointer;
+            }
+            .control {
+                cursor: pointer;
+                text-decoration: underline dotted;
+                text-decoration-color: blue;
+            }
+            .right {
+                float: right;
+            }
+            .actions {
+                margin: 16px 0px 16px 16px;
+            }
+            .notext {
+                font-size: 0;
+            }
+            .flag {
+                font-size: medium;
+            }
+            .flags {
+            }
+            .checkflags {
+            }
+            .setflags {
+            }
+            .flaggroup {
+            }
+        </style>
+        <script type="text/javascript">
+    
+document.addEventListener("click", (event) => {
+    const elt = document.elementFromPoint(event.clientX, event.clientY);
+    if (elt.tagName == 'DIV' && elt.id) {
+        elt.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    }
+});
+window.addEventListener("load", (event) => {
+    console.log('document loaded: ' + document.location);
+    if (document.location.hash) {
+        const node_uuid = document.location.hash.slice(1);
+        const elt = document.getElementById(node_uuid);
+        if (elt) {
+            expand_node(node_uuid);
+        }
+    }
+});
+function get_expand_flags_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-flags')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_flags_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-flags')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_flags_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('flags')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_flags(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_flags_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_flags_elt(div_elt).classList.replace('invisible', 'visible')
+    get_flags_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-flags', 'visible-flags')
+    });
+}
+function on_click_collapse_flags(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_flags_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_flags_elt(div_elt).classList.replace('visible', 'invisible')
+    get_flags_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-flags', 'invisible-flags')
+    });
+}
+
+function get_expand_nodecontext_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-nodecontext')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_nodecontext_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-nodecontext')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_nodecontext_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('nodecontext')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_nodecontext(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_nodecontext_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_nodecontext_elt(div_elt).classList.replace('invisible', 'visible')
+    get_nodecontext_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+    });
+}
+function on_click_collapse_nodecontext(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_nodecontext_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_nodecontext_elt(div_elt).classList.replace('visible', 'invisible')
+    get_nodecontext_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+    });
+}
+
+function get_expand_children_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('expand-children')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_collapse_children_elt(div_elt) {
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('collapse-children')) {
+            return elt;
+        }
+    }
+    return null;
+}
+function get_children_nodes(div_elt) {
+    const result = [];
+    for (let i = 0; i < div_elt.children.length; ++i) {
+        const elt = div_elt.children[i];
+        if (elt.classList.contains('node')) {
+            result.push(elt);
+        }
+    }
+    return result;
+}
+function on_click_expand_children(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_children_elt(div_elt).classList.replace('visible', 'invisible')
+    get_collapse_children_elt(div_elt).classList.replace('invisible', 'visible')
+    get_children_nodes(div_elt).forEach(node => {
+        node.classList.replace('invisible-node', 'visible-node')
+    });
+}
+function on_click_collapse_children(uuid) {
+    const div_elt = document.getElementById(uuid);
+    if (div_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return;
+    }
+    get_expand_children_elt(div_elt).classList.replace('invisible', 'visible')
+    get_collapse_children_elt(div_elt).classList.replace('visible', 'invisible')
+    get_children_nodes(div_elt).forEach(node => {
+        node.classList.replace('visible-node', 'invisible-node')
+    });
+}
+function expand_one_node(node_elt) {
+    var e = get_expand_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_collapse_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_flags_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-flags', 'visible-flags')
+        });
+    }
+
+    e = get_expand_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_collapse_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_nodecontext_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+        });
+    }
+
+    e = get_expand_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible')
+    }
+    e = get_collapse_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible')
+    }
+    e = get_children_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('invisible-node', 'visible-node')
+        });
+    }
+}
+function expand_node(uuid) {
+    const target_uuid = uuid;
+    const target_elt = document.getElementById(uuid);
+    if (target_elt == null) {
+        console.log("Can't find parent of the click target: " + uuid);
+        return false;
+    }
+    var node_uuid = target_elt.getAttribute('name');
+    console.log("node_uuid = " + node_uuid);
+    while (node_uuid != 'toplevelnode') {
+        const node_elt = document.getElementById(node_uuid);
+        if (node_elt == null) {
+            console.log("Node cannot be found: " + node_uuid);
+            break;
+        }
+        expand_one_node(node_elt);
+        node_uuid = node_elt.getAttribute('name');
+    }
+    target_elt.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    return false;
+}
+function expand_all() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        expand_one_node(nodes.item(i));
+    }
+}
+function collapse_one_node(node_elt) {
+    var e = get_expand_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_collapse_flags_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_flags_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-flags', 'invisible-flags')
+        });
+    }
+
+    e = get_expand_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible');
+    }
+    e = get_collapse_nodecontext_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible');
+    }
+    e = get_nodecontext_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+        });
+    }
+
+    e = get_expand_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('invisible', 'visible')
+    }
+    e = get_collapse_children_elt(node_elt);
+    if (e) {
+        e.classList.replace('visible', 'invisible')
+    }
+    e = get_children_nodes(node_elt);
+    if (e) {
+        e.forEach(node => {
+            node.classList.replace('visible-node', 'invisible-node')
+        });
+    }
+}
+function collapse_all() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        collapse_one_node(nodes.item(i));
+    }
+}
+
+function expand_all_flags() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_collapse_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_flags_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('invisible-flags', 'visible-flags')
+            });
+        }
+    }
+}
+
+function collapse_all_flags() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_collapse_flags_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_flags_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('visible-flags', 'invisible-flags')
+            });
+        }
+    }
+}
+
+function expand_all_nodecontexts() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_collapse_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_nodecontext_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('invisible-nodecontext', 'visible-nodecontext')
+            });
+        }
+    }
+}
+
+function collapse_all_nodecontexts() {
+    const nodes = document.getElementsByClassName('node');
+    for (var i = 0; i < nodes.length; ++i) {
+        const node_elt = nodes.item(i);
+        var e = get_expand_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('invisible', 'visible');
+        }
+        e = get_collapse_nodecontext_elt(node_elt);
+        if (e) {
+            e.classList.replace('visible', 'invisible');
+        }
+        e = get_nodecontext_nodes(node_elt);
+        if (e) {
+            e.forEach(node => {
+                node.classList.replace('visible-nodecontext', 'invisible-nodecontext')
+            });
+        }
+    }
+}
+
+        </script>
+    </head>
+    <body>
+        <div class="title">CHA_Outside_AD_BanditsDiscussion</div>
+            <div class="synopsis"><label>Speaker 0:  | Speaker 1: Taman</label></div>
+        <div><label>Dialog UUID:&nbsp;</label><label class="clipboard" onclick="navigator.clipboard.writeText('014c2c40-c184-6bcf-ef8f-fa11a6d84903')">014c2c40-c184-6bcf-ef8f-fa11a6d84903</label></div>
+        <div><label>Timeline UUID:&nbsp;</label><label class="clipboard" ></label></div>
+        <div><label>LSJ path: Gustav.pak:Mods/Gustav/Story/Dialogs/Act1/Chapel/CHA_Outside_AD_BanditsDiscussion.lsj</label></div>
+        <div><label>LSF path: not found</label></div>
+        <div><label>Dialog bank path: Gustav.pak:Public/Gustav/Content/Assets/Dialogs/Act1/[PAK]_Chapel/_merged.lsf</label></div>
+        <div class="actions">
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all()">Click here to EXPAND ALL</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all()">Click here to COLLAPSE ALL</label></span>            
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all_flags()">Click here to EXPAND ALL FLAGS</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all_flags()">Click here to COLLAPSE ALL FLAGS</label></span>            
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="expand_all_nodecontexts()">Click here to EXPAND ALL NODE CONTEXTS</label></span>
+            <span><label>   |   </label></span>
+            <span><label class="control" onclick="collapse_all_nodecontexts()">Click here to COLLAPSE ALL NODE CONTEXTS</label></span>            
+            <span><label>   |   </label></span>
+        </div>
+            <div id="ae094e18-a3cd-46aa-894d-b38f7373504e" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('ae094e18-a3cd-46aa-894d-b38f7373504e')"><i>ae094e18-a3cd-46aa-894d-b38f7373504e</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Speaker_538e38b9-e3a4-452a-8369-60eb1fe8c40d [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SGVsbHMuIFBpdHkgeW91IGFyZW4ndCBhcyBnb29kIGF0IGdyYXZlcm9iYmluZyBhcyB5b3UgYXJlIGF0IGV4Y3VzZXMu'))">Hells. Pity you aren't as good at graverobbing as you are at excuses.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('hc41660e1g4a9cg4756g94fcg7283e3ce05ed')"><i>hc41660e1g4a9cg4756g94fcg7283e3ce05ed</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('5.8850727')">5.8850727</label>
+                    </li>
+                </ul>
+            </div>
+            <label class="expand-flags visible" onclick="on_click_expand_flags('ae094e18-a3cd-46aa-894d-b38f7373504e')">[+]</label>
+            <label class="collapse-flags invisible" onclick="on_click_collapse_flags('ae094e18-a3cd-46aa-894d-b38f7373504e')">[-]</label>
+            <label> <strong>Flags</strong></label><br>
+            <div class="invisible-flags checkflags flags">
+                <li class="flaggroup" name="Local">Check "Local" flag(s):
+                    <ul>
+                        <li class="notext" name="1d3ca60d-50e4-c825-eb62-430dd9defdd7" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('ed70fdfc-3d7b-7753-1171-957f7316fe55_C_1d3ca60d-50e4-c825-eb62-430dd9defdd7')">ed70fdfc-3d7b-7753-1171-957f7316fe55_C_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('1d3ca60d-50e4-c825-eb62-430dd9defdd7')">1d3ca60d-50e4-c825-eb62-430dd9defdd7</label>
+                            <label class="flag">&nbsp;is True</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+            <div class="invisible-flags setflags flags">
+                <li class="flaggroup" name="Local">Set "Local" flag(s):
+                    <ul>
+                        <li class="notext" name="1d3ca60d-50e4-c825-eb62-430dd9defdd7" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('ed70fdfc-3d7b-7753-1171-957f7316fe55_C_1d3ca60d-50e4-c825-eb62-430dd9defdd7')">ed70fdfc-3d7b-7753-1171-957f7316fe55_C_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('1d3ca60d-50e4-c825-eb62-430dd9defdd7')">1d3ca60d-50e4-c825-eb62-430dd9defdd7</label>
+                            <label class="flag">&nbsp;to False</label>
+                        </li>
+                        <li class="notext" name="623573b1-b406-5f31-2114-dcfdef6580bf" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('ed70fdfc-3d7b-7753-1171-957f7316fe55_B_623573b1-b406-5f31-2114-dcfdef6580bf')">ed70fdfc-3d7b-7753-1171-957f7316fe55_B_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('623573b1-b406-5f31-2114-dcfdef6580bf')">623573b1-b406-5f31-2114-dcfdef6580bf</label>
+                            <label class="flag">&nbsp;to False</label>
+                        </li>
+                        <li class="notext" name="68eadd8f-d07e-ac6a-c959-6de6df6416ee" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('ed70fdfc-3d7b-7753-1171-957f7316fe55_A_68eadd8f-d07e-ac6a-c959-6de6df6416ee')">ed70fdfc-3d7b-7753-1171-957f7316fe55_A_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('68eadd8f-d07e-ac6a-c959-6de6df6416ee')">68eadd8f-d07e-ac6a-c959-6de6df6416ee</label>
+                            <label class="flag">&nbsp;to False</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+            <label class="expand-children visible" onclick="on_click_expand_children('ae094e18-a3cd-46aa-894d-b38f7373504e')">[+]</label>
+            <label class="collapse-children invisible" onclick="on_click_collapse_children('ae094e18-a3cd-46aa-894d-b38f7373504e')">[-]</label>
+            <label>1 child node</label><br>
+            <div id="7fcff156-732c-a69f-c4e7-2898c26a1384" name="ae094e18-a3cd-46aa-894d-b38f7373504e" class="node invisible-node answer">
+                <div class="info">
+                    <label><strong>TagAnswer</strong> EndNode</label>
+                    <span class="right"><a href="#ae094e18-a3cd-46aa-894d-b38f7373504e">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('7fcff156-732c-a69f-c4e7-2898c26a1384')"><i>7fcff156-732c-a69f-c4e7-2898c26a1384</i> |</label></span>
+                </div>
+                <div class="speaker" name="1">
+                    <label class="speaker">Taman [1]</label><label> says:</label><br>
+                    <ul class="voicelines">
+                        <li class="voiceline" >
+                            <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SnVzdCBiZWluZyBjYXJlZnVsLiBMaWtlIG15IG11bSBhbHdheXMgc2FpZCwgZm9vbHMgcnVzaCBpbi4='))">Just being careful. Like my mum always said, fools rush in.</label>
+                            <label> | </label>
+                            <label class="clipboard" onclick="navigator.clipboard.writeText('h9af88afag473dg44ffg9170gc99d01a2644d')"><i>h9af88afag473dg44ffg9170gc99d01a2644d</i></label>
+                            <label> (version 2)</label>
+                            <label> | </label>
+                            <label class="clipboard" onclick="navigator.clipboard.writeText('5.2332916')">5.2332916</label>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div id="77949158-1998-42a6-947b-8fadb738f8d0" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('77949158-1998-42a6-947b-8fadb738f8d0')"><i>77949158-1998-42a6-947b-8fadb738f8d0</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Speaker_538e38b9-e3a4-452a-8369-60eb1fe8c40d [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('RWl0aGVyIHdlIGFjdCBub3csIG9yIHNvbWVvbmUgZWxzZSB3aWxsIHBpY2sgdGhhdCB3cmVjayBjbGVhbiBhbmQgbGVhdmUgdXMgbm90aGluZy4='))">Either we act now, or someone else will pick that wreck clean and leave us nothing.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h6931668cged97g4199g90efg61e083b8dae2')"><i>h6931668cged97g4199g90efg61e083b8dae2</i></label>
+                        <label> (version 3)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('7.692458')">7.692458</label>
+                    </li>
+                </ul>
+            </div>
+            <label class="expand-flags visible" onclick="on_click_expand_flags('77949158-1998-42a6-947b-8fadb738f8d0')">[+]</label>
+            <label class="collapse-flags invisible" onclick="on_click_collapse_flags('77949158-1998-42a6-947b-8fadb738f8d0')">[-]</label>
+            <label> <strong>Flags</strong></label><br>
+            <div class="invisible-flags checkflags flags">
+                <li class="flaggroup" name="Local">Check "Local" flag(s):
+                    <ul>
+                        <li class="notext" name="623573b1-b406-5f31-2114-dcfdef6580bf" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('ed70fdfc-3d7b-7753-1171-957f7316fe55_B_623573b1-b406-5f31-2114-dcfdef6580bf')">ed70fdfc-3d7b-7753-1171-957f7316fe55_B_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('623573b1-b406-5f31-2114-dcfdef6580bf')">623573b1-b406-5f31-2114-dcfdef6580bf</label>
+                            <label class="flag">&nbsp;is True</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+            <div class="invisible-flags setflags flags">
+                <li class="flaggroup" name="Local">Set "Local" flag(s):
+                    <ul>
+                        <li class="notext" name="1d3ca60d-50e4-c825-eb62-430dd9defdd7" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('ed70fdfc-3d7b-7753-1171-957f7316fe55_C_1d3ca60d-50e4-c825-eb62-430dd9defdd7')">ed70fdfc-3d7b-7753-1171-957f7316fe55_C_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('1d3ca60d-50e4-c825-eb62-430dd9defdd7')">1d3ca60d-50e4-c825-eb62-430dd9defdd7</label>
+                            <label class="flag">&nbsp;to True</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+            <label class="expand-children visible" onclick="on_click_expand_children('77949158-1998-42a6-947b-8fadb738f8d0')">[+]</label>
+            <label class="collapse-children invisible" onclick="on_click_collapse_children('77949158-1998-42a6-947b-8fadb738f8d0')">[-]</label>
+            <label>1 child node</label><br>
+            <div id="37b19def-03f6-4da0-5dd6-43d1bdbe0b0f" name="77949158-1998-42a6-947b-8fadb738f8d0" class="node invisible-node answer">
+                <div class="info">
+                    <label><strong>TagAnswer</strong> EndNode</label>
+                    <span class="right"><a href="#77949158-1998-42a6-947b-8fadb738f8d0">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('37b19def-03f6-4da0-5dd6-43d1bdbe0b0f')"><i>37b19def-03f6-4da0-5dd6-43d1bdbe0b0f</i> |</label></span>
+                </div>
+                <div class="speaker" name="1">
+                    <label class="speaker">Taman [1]</label><label> says:</label><br>
+                    <ul class="voicelines">
+                        <li class="voiceline" >
+                            <label class="clipboard" onclick="navigator.clipboard.writeText(atob('SGF2ZW4ndCBzZWVuIGFueW9uZSBidXQgdXMuIEl0J3MganVzdCB3aWxkZXJuZXNzIG91dCBoZXJlLg=='))">Haven't seen anyone but us. It's just wilderness out here.</label>
+                            <label> | </label>
+                            <label class="clipboard" onclick="navigator.clipboard.writeText('h1f420069gffbag4521g993dgecb85c75ff66')"><i>h1f420069gffbag4521g993dgecb85c75ff66</i></label>
+                            <label> (version 2)</label>
+                            <label> | </label>
+                            <label class="clipboard" onclick="navigator.clipboard.writeText('4.2151146')">4.2151146</label>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div id="64fa7bce-1442-4cfd-a1c6-70bfb5f7e393" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('64fa7bce-1442-4cfd-a1c6-70bfb5f7e393')"><i>64fa7bce-1442-4cfd-a1c6-70bfb5f7e393</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Speaker_538e38b9-e3a4-452a-8369-60eb1fe8c40d [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('WW91J2xsIGRpZSBhIGJsb29keSBwYXVwZXIgdW5sZXNzIHlvdSB0YWtlIGEgZmV3IHJpc2tzLg=='))">You'll die a bloody pauper unless you take a few risks.</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h9a7591dcgb75ag40afg884ag84c759504040')"><i>h9a7591dcgb75ag40afg884ag84c759504040</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('5.207323')">5.207323</label>
+                    </li>
+                </ul>
+            </div>
+            <label class="expand-flags visible" onclick="on_click_expand_flags('64fa7bce-1442-4cfd-a1c6-70bfb5f7e393')">[+]</label>
+            <label class="collapse-flags invisible" onclick="on_click_collapse_flags('64fa7bce-1442-4cfd-a1c6-70bfb5f7e393')">[-]</label>
+            <label> <strong>Flags</strong></label><br>
+            <div class="invisible-flags checkflags flags">
+                <li class="flaggroup" name="Local">Check "Local" flag(s):
+                    <ul>
+                        <li class="notext" name="68eadd8f-d07e-ac6a-c959-6de6df6416ee" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('ed70fdfc-3d7b-7753-1171-957f7316fe55_A_68eadd8f-d07e-ac6a-c959-6de6df6416ee')">ed70fdfc-3d7b-7753-1171-957f7316fe55_A_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('68eadd8f-d07e-ac6a-c959-6de6df6416ee')">68eadd8f-d07e-ac6a-c959-6de6df6416ee</label>
+                            <label class="flag">&nbsp;is True</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+            <div class="invisible-flags setflags flags">
+                <li class="flaggroup" name="Local">Set "Local" flag(s):
+                    <ul>
+                        <li class="notext" name="623573b1-b406-5f31-2114-dcfdef6580bf" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('ed70fdfc-3d7b-7753-1171-957f7316fe55_B_623573b1-b406-5f31-2114-dcfdef6580bf')">ed70fdfc-3d7b-7753-1171-957f7316fe55_B_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('623573b1-b406-5f31-2114-dcfdef6580bf')">623573b1-b406-5f31-2114-dcfdef6580bf</label>
+                            <label class="flag">&nbsp;to True</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+            <label class="expand-children visible" onclick="on_click_expand_children('64fa7bce-1442-4cfd-a1c6-70bfb5f7e393')">[+]</label>
+            <label class="collapse-children invisible" onclick="on_click_collapse_children('64fa7bce-1442-4cfd-a1c6-70bfb5f7e393')">[-]</label>
+            <label>1 child node</label><br>
+            <div id="7aa81437-a283-9597-a907-18c3d3754ea2" name="64fa7bce-1442-4cfd-a1c6-70bfb5f7e393" class="node invisible-node answer">
+                <div class="info">
+                    <label><strong>TagAnswer</strong> EndNode</label>
+                    <span class="right"><a href="#64fa7bce-1442-4cfd-a1c6-70bfb5f7e393">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('7aa81437-a283-9597-a907-18c3d3754ea2')"><i>7aa81437-a283-9597-a907-18c3d3754ea2</i> |</label></span>
+                </div>
+                <div class="speaker" name="1">
+                    <label class="speaker">Taman [1]</label><label> says:</label><br>
+                    <ul class="voicelines">
+                        <li class="voiceline" >
+                            <label class="clipboard" onclick="navigator.clipboard.writeText(atob('V2h5IGRvbid0IHdlIGp1c3Qgd2FpdCBhIHdoaWxlPyBNYWtlIHN1cmUgaXQncyBzYWZlLg=='))">Why don't we just wait a while? Make sure it's safe.</label>
+                            <label> | </label>
+                            <label class="clipboard" onclick="navigator.clipboard.writeText('h880147abg5597g4532g8ed9g6c1a44ef750c')"><i>h880147abg5597g4532g8ed9g6c1a44ef750c</i></label>
+                            <label> (version 2)</label>
+                            <label> | </label>
+                            <label class="clipboard" onclick="navigator.clipboard.writeText('3.4530625')">3.4530625</label>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div id="80e1cc6e-ac1f-4745-942a-a5660fecf501" name="toplevelnode" class="node visible-node greeting">
+            <div class="info">
+                <label><strong>TagGreeting</strong> RootNode</label>
+                <span class="right"><a href="#toplevelnode">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('80e1cc6e-ac1f-4745-942a-a5660fecf501')"><i>80e1cc6e-ac1f-4745-942a-a5660fecf501</i> |</label></span>
+            </div>
+            <div class="speaker" name="0">
+                <label class="speaker">Speaker_538e38b9-e3a4-452a-8369-60eb1fe8c40d [0]</label><label> says:</label><br>
+                <ul class="voicelines">
+                    <li class="voiceline" >
+                        <label class="clipboard" onclick="navigator.clipboard.writeText(atob('VGhlcmUgY291bGQgYmUgYWxsIHNvcnRzIG9mIGxvb3QgaW4gdGhhdCB0aGluZyAtIGRvbid0IHlvdSB3YW50IHRvIGJlIHJpY2g/'))">There could be all sorts of loot in that thing - don't you want to be rich?</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('h16db3af2g791cg42b9gb59fg8c2c907f1050')"><i>h16db3af2g791cg42b9gb59fg8c2c907f1050</i></label>
+                        <label> (version 2)</label>
+                        <label> | </label>
+                        <label class="clipboard" onclick="navigator.clipboard.writeText('5.273479')">5.273479</label>
+                    </li>
+                </ul>
+            </div>
+            <label class="expand-flags visible" onclick="on_click_expand_flags('80e1cc6e-ac1f-4745-942a-a5660fecf501')">[+]</label>
+            <label class="collapse-flags invisible" onclick="on_click_collapse_flags('80e1cc6e-ac1f-4745-942a-a5660fecf501')">[-]</label>
+            <label> <strong>Flags</strong></label><br>
+            <div class="invisible-flags setflags flags">
+                <li class="flaggroup" name="Local">Set "Local" flag(s):
+                    <ul>
+                        <li class="notext" name="68eadd8f-d07e-ac6a-c959-6de6df6416ee" >
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('ed70fdfc-3d7b-7753-1171-957f7316fe55_A_68eadd8f-d07e-ac6a-c959-6de6df6416ee')">ed70fdfc-3d7b-7753-1171-957f7316fe55_A_</label>
+                            <label class="flag clipboard" onclick="navigator.clipboard.writeText('68eadd8f-d07e-ac6a-c959-6de6df6416ee')">68eadd8f-d07e-ac6a-c959-6de6df6416ee</label>
+                            <label class="flag">&nbsp;to True</label>
+                        </li>
+                    </ul>
+                </li>
+            </div>
+            <label class="expand-children visible" onclick="on_click_expand_children('80e1cc6e-ac1f-4745-942a-a5660fecf501')">[+]</label>
+            <label class="collapse-children invisible" onclick="on_click_collapse_children('80e1cc6e-ac1f-4745-942a-a5660fecf501')">[-]</label>
+            <label>1 child node</label><br>
+            <div id="249b351a-9c7c-d1c4-930b-58db3bbafc05" name="80e1cc6e-ac1f-4745-942a-a5660fecf501" class="node invisible-node answer">
+                <div class="info">
+                    <label><strong>TagAnswer</strong> EndNode</label>
+                    <span class="right"><a href="#80e1cc6e-ac1f-4745-942a-a5660fecf501">TO PARENT NODE</a><label> | </label><label class="clipboard" onclick="navigator.clipboard.writeText('249b351a-9c7c-d1c4-930b-58db3bbafc05')"><i>249b351a-9c7c-d1c4-930b-58db3bbafc05</i> |</label></span>
+                </div>
+                <div class="speaker" name="1">
+                    <label class="speaker">Taman [1]</label><label> says:</label><br>
+                    <ul class="voicelines">
+                        <li class="voiceline" >
+                            <label class="clipboard" onclick="navigator.clipboard.writeText(atob('T2YgY291cnNlIEkgd2FudCB0byBiZSByaWNoIC0gYnV0IG5vdCBpZiBpdCdsbCBnZXQgbWUga2lsbGVkLg=='))">Of course I want to be rich - but not if it'll get me killed.</label>
+                            <label> | </label>
+                            <label class="clipboard" onclick="navigator.clipboard.writeText('h334ba4e0g248bg40cag8689g261a14f8acab')"><i>h334ba4e0g248bg40cag8689g261a14f8acab</i></label>
+                            <label> (version 3)</label>
+                            <label> | </label>
+                            <label class="clipboard" onclick="navigator.clipboard.writeText('4.467531')">4.467531</label>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>
